@@ -1,5 +1,5 @@
 -- ==========================================
--- GLUE PIECE - YUI HUB STYLE V4 (FIXED DRAG & PASSIVE ATTACK)
+-- GLUE PIECE - YUI HUB STYLE V5 (THÊM THU NHỎ UI)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local guiName = "GluePiece_YuiStyle_V4"
+local guiName = "GluePiece_YuiStyle_V5"
 local CoreGui = pcall(function() return game:GetService("CoreGui").Name end) and game:GetService("CoreGui") or LocalPlayer.PlayerGui
 
 if CoreGui:FindFirstChild(guiName) then CoreGui[guiName]:Destroy() end
@@ -56,6 +56,21 @@ local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = guiName
 ScreenGui.ResetOnSpawn = false
 
+-- NÚT MỞ (Ô VUÔNG NHỎ BÊN TRÁI)
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
+OpenBtn.BackgroundColor3 = Colors.Card
+OpenBtn.Text = "YUI\nHUB"
+OpenBtn.TextColor3 = Colors.Green
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 11
+OpenBtn.Visible = false
+OpenBtn.Active = true
+OpenBtn.Draggable = true -- Cho phép kéo rê cục icon thu nhỏ
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", OpenBtn).Color = Colors.Green
+
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 680, 0, 420)
 MainFrame.Position = UDim2.new(0.5, -340, 0.5, -210)
@@ -63,7 +78,7 @@ MainFrame.BackgroundColor3 = Colors.BG
 MainFrame.Active = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Header (TopBar) - CHỈ CHO PHÉP KÉO Ở ĐÂY ĐỂ TRÁNH LỖI SCROLL
+-- Header (TopBar)
 local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 50)
 TopBar.BackgroundTransparency = 1
@@ -113,12 +128,23 @@ local TitleBot = Instance.new("TextLabel", TopBar)
 TitleBot.Size = UDim2.new(0, 200, 0, 20)
 TitleBot.Position = UDim2.new(0, 30, 0.5, 0)
 TitleBot.BackgroundTransparency = 1
-TitleBot.Text = "Glue Piece V4"
+TitleBot.Text = "Glue Piece V5"
 TitleBot.TextColor3 = Colors.Green
 TitleBot.Font = Enum.Font.GothamBold
 TitleBot.TextSize = 18
 TitleBot.TextXAlignment = Enum.TextXAlignment.Left
 
+-- NÚT THU NHỎ (-)
+local MinBtn = Instance.new("TextButton", TopBar)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -75, 0.5, -15)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Colors.Text
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 14
+
+-- NÚT ĐÓNG (X)
 local CloseBtn = Instance.new("TextButton", TopBar)
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -40, 0.5, -15)
@@ -127,7 +153,21 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 16
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- LOGIC MỞ/THU NHỎ/ĐÓNG UI
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
 
 local LeftPanel = Instance.new("ScrollingFrame", MainFrame)
 LeftPanel.Size = UDim2.new(0, 160, 1, -60)
@@ -470,7 +510,6 @@ CreateToggle(SecFarm, "Bật Auto Farm Mobs", "AutoFarm")
 local TabSkill = CreateTab("Vũ Khí & Kỹ Năng")
 local SecWeap = CreateSection(TabSkill, "Sử Dụng Vũ Khí")
 
--- Dropdown Rỗng lúc đầu, sẽ có Update Menu
 local UpdateWeaponMenu = CreateDropdown(SecWeap, "Vũ Khí Đang Có (Hãy Quét Trước)", {"Chưa quét"}, "SelectedWeapons", true)
 
 CreateButton(SecWeap, "🔄 Quét Vũ Khí Trong Túi", function()
@@ -483,7 +522,6 @@ CreateButton(SecWeap, "🔄 Quét Vũ Khí Trong Túi", function()
     end
     if #wpList == 0 then table.insert(wpList, "Không tìm thấy vũ khí") end
     
-    -- Xóa dữ liệu cũ nếu quét lại
     _G.SelectedWeapons = {} 
     UpdateWeaponMenu(wpList)
 end)
@@ -597,7 +635,6 @@ task.spawn(function()
                         if char and char:FindFirstChild("HumanoidRootPart") then
                             char.HumanoidRootPart.CFrame = GetOffsetCFrame(targetMob.HumanoidRootPart.CFrame)
                             
-                            -- Đánh thụ động bằng cách kích hoạt Tool thay vì bấm chuột
                             if _G.AutoAttack then
                                 for _, tool in pairs(char:GetChildren()) do
                                     if tool:IsA("Tool") then tool:Activate() end
