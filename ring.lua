@@ -1,5 +1,5 @@
 -- ==========================================
--- GLUE PIECE - YUI HUB STYLE V6 (FULL TÍNH NĂNG + TRACKER XỊN)
+-- GLUE PIECE - YUI HUB STYLE V7 (FIX FONT LỖI Ô VUÔNG)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local guiName = "GluePiece_YuiStyle_V6"
+local guiName = "GluePiece_YuiStyle_V7"
 local CoreGui = pcall(function() return game:GetService("CoreGui").Name end) and game:GetService("CoreGui") or LocalPlayer.PlayerGui
 
 if CoreGui:FindFirstChild(guiName) then CoreGui[guiName]:Destroy() end
@@ -123,7 +123,7 @@ local TitleBot = Instance.new("TextLabel", TopBar)
 TitleBot.Size = UDim2.new(0, 200, 0, 20)
 TitleBot.Position = UDim2.new(0, 30, 0.5, -10)
 TitleBot.BackgroundTransparency = 1
-TitleBot.Text = "Glue Piece V6"
+TitleBot.Text = "Glue Piece V7"
 TitleBot.TextColor3 = Colors.Green
 TitleBot.Font = Enum.Font.GothamBold
 TitleBot.TextSize = 18
@@ -331,7 +331,7 @@ local function CreateDropdown(parent, text, list, globalVar, isMulti)
                     else
                         _G[globalVar][opt] = true
                         OptBtn.TextColor3 = Colors.Green
-                        OptBtn.Text = "✓ " .. opt
+                        OptBtn.Text = "[ V ] " .. opt
                     end
                 else
                     _G[globalVar] = opt
@@ -410,7 +410,7 @@ local function CreateNote(parent, height)
     Lbl.TextColor3 = Color3.fromRGB(180, 180, 200)
     Lbl.Font = Enum.Font.Gotham
     Lbl.TextSize = 12
-    Lbl.RichText = true -- Hỗ trợ màu HTML
+    Lbl.RichText = true -- Hỗ trợ màu HTML cực quan trọng cho YES/NO
     Lbl.TextYAlignment = Enum.TextYAlignment.Top
     Lbl.TextXAlignment = Enum.TextXAlignment.Left
     Lbl.TextWrapped = true
@@ -438,17 +438,20 @@ end
 -- TAB 1: SĂN BOSS 
 local TabBoss = CreateTab("Săn Boss")
 local SecSpecial = CreateSection(TabBoss, "Boss Ưu Tiên Cao (Thế Giới)")
-CreateToggle(SecSpecial, "🔥 Auto Săn Kyo (Cực VIP)", "AutoKyo")
-CreateToggle(SecSpecial, "🔥 Auto Săn Duck Boss", "AutoDuck")
+CreateToggle(SecSpecial, "[ VIP ] Auto Săn Kyo", "AutoKyo")
+CreateToggle(SecSpecial, "[ HOT ] Auto Săn Duck Boss", "AutoDuck")
 
 local SecBoss = CreateSection(TabBoss, "Danh Sách Boss Tùy Chọn")
 CreateDropdown(SecBoss, "Chọn Các Boss Cần Farm", NormalBosses, "FarmBosses", true)
 CreateToggle(SecBoss, "Bật Auto Săn Boss Tùy Chọn", "AutoBoss")
 
 local SecTracker = CreateSection(TabBoss, "Live Boss Tracker")
-local BossNoteLabel = CreateNote(SecTracker, 240) -- Khung cao 240 để chứa đủ danh sách
+local BossNoteLabel = CreateNote(SecTracker, 240)
 
 task.spawn(function()
+    local cYes = "<font color='rgb(0, 255, 136)'>[ YES ]</font> "
+    local cNo = "<font color='rgb(255, 80, 80)'>[ NO ]</font> "
+
     while task.wait(1) do
         local alive = {}
         for _, obj in pairs(workspace:GetDescendants()) do
@@ -459,12 +462,12 @@ task.spawn(function()
 
         local txt = "<font color='rgb(0, 255, 136)'>[ BOSS THẾ GIỚI ]</font>\n"
         for _, b in ipairs(WorldBosses) do
-            if alive[b] then txt = txt .. "✅ " .. b .. "\n" else txt = txt .. "❌ " .. b .. "\n" end
+            if alive[b] then txt = txt .. cYes .. b .. "\n" else txt = txt .. cNo .. b .. "\n" end
         end
         
         txt = txt .. "\n<font color='rgb(255, 200, 50)'>[ BOSS THƯỜNG ]</font>\n"
         for _, b in ipairs(NormalBosses) do
-            if alive[b] then txt = txt .. "✅ " .. b .. "\n" else txt = txt .. "❌ " .. b .. "\n" end
+            if alive[b] then txt = txt .. cYes .. b .. "\n" else txt = txt .. cNo .. b .. "\n" end
         end
 
         BossNoteLabel.Text = txt
@@ -479,7 +482,7 @@ CreateDropdown(SecFarm, "Danh Sách Quái Mobs", MobsList, "FarmMobs", true)
 CreateToggle(SecFarm, "Bật Auto Farm Mobs", "AutoFarm")
 
 
--- TAB 3: SETTING FARM (TAB MỚI)
+-- TAB 3: SETTING FARM 
 local TabSetting = CreateTab("Setting Farm")
 local SecSet = CreateSection(TabSetting, "Cài Đặt Đánh & Góc Di Chuyển")
 CreateToggle(SecSet, "Đánh Thụ Động (Tool:Activate() - Ít lỗi)", "AutoAttack")
@@ -491,7 +494,7 @@ CreateDistanceSlider(SecSet)
 local TabSkill = CreateTab("Vũ Khí & Kỹ Năng")
 local SecWeap = CreateSection(TabSkill, "Sử Dụng Vũ Khí")
 local UpdateWeaponMenu = CreateDropdown(SecWeap, "Vũ Khí Đang Có (Hãy Quét Trước)", {"Chưa quét"}, "SelectedWeapons", true)
-CreateButton(SecWeap, "🔄 Quét Vũ Khí Trong Túi", function()
+CreateButton(SecWeap, "[ SCAN ] Quét Vũ Khí Trong Túi", function()
     local wpList = {}
     for _, t in pairs(LocalPlayer.Backpack:GetChildren()) do if t:IsA("Tool") then table.insert(wpList, t.Name) end end
     for _, t in pairs(LocalPlayer.Character:GetChildren()) do if t:IsA("Tool") then table.insert(wpList, t.Name) end end
@@ -506,7 +509,7 @@ CreateDropdown(SecSkill, "Chọn Các Phím Cần Xả", SkillKeys, "SelectedSki
 CreateToggle(SecSkill, "Bật Tự Động Xả Skill", "AutoSkill")
 
 
--- TAB 5: ESP & TELEPORT (MAP)
+-- TAB 5: ESP & TELEPORT
 local TabItems = CreateTab("Map & Dịch Chuyển")
 
 local SecNPC = CreateSection(TabItems, "Shop & NPCs Teleport")
@@ -528,7 +531,7 @@ TeleNPCBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 
 local SecDrop = CreateSection(TabItems, "Đồ Rơi (Fruit, Item...)")
 local UpdateDropMenu = CreateDropdown(SecDrop, "Danh Sách Vật Phẩm Trên Đất", {"Đang chờ..."}, "SelectedDrop", false)
-CreateButton(SecDrop, "Làm Mới Danh Sách Vật Phẩm", function()
+CreateButton(SecDrop, "[ SCAN ] Làm Mới Danh Sách Vật Phẩm", function()
     local drops = {}
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("Tool") and obj.Parent ~= LocalPlayer.Character and obj.Parent ~= LocalPlayer.Backpack then
@@ -561,7 +564,6 @@ CreateToggle(SecESP, "Bật ESP Tên Boss", "ESPBoss")
 -- Vòng lặp vẽ ESP
 task.spawn(function()
     while task.wait(1) do
-        -- Xóa ESP cũ nếu tắt
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:FindFirstChild("Yui_ESP") then
                 if (obj:IsA("Tool") and not _G.ESPItem) or (obj:IsA("Model") and not _G.ESPBoss) then
@@ -570,7 +572,6 @@ task.spawn(function()
             end
         end
 
-        -- Vẽ ESP Item
         if _G.ESPItem then
             for _, obj in pairs(workspace:GetDescendants()) do
                 if obj:IsA("Tool") and obj.Parent ~= LocalPlayer.Character and obj.Parent ~= LocalPlayer.Backpack then
@@ -583,7 +584,7 @@ task.spawn(function()
                         local txt = Instance.new("TextLabel", bb)
                         txt.Size = UDim2.new(1, 0, 1, 0)
                         txt.BackgroundTransparency = 1
-                        txt.Text = obj.Name .. " [Item]"
+                        txt.Text = "[ ITEM ] " .. obj.Name
                         txt.TextColor3 = Color3.fromRGB(0, 255, 136)
                         txt.TextScaled = true
                     end
@@ -591,7 +592,6 @@ task.spawn(function()
             end
         end
 
-        -- Vẽ ESP Boss
         if _G.ESPBoss then
             for _, obj in pairs(workspace:GetDescendants()) do
                 if obj:IsA("Model") and table.find(BossesList, obj.Name) and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
@@ -604,7 +604,7 @@ task.spawn(function()
                         local txt = Instance.new("TextLabel", bb)
                         txt.Size = UDim2.new(1, 0, 1, 0)
                         txt.BackgroundTransparency = 1
-                        txt.Text = obj.Name .. " [BOSS]"
+                        txt.Text = "[ BOSS ] " .. obj.Name
                         txt.TextColor3 = Color3.fromRGB(255, 50, 50)
                         txt.TextScaled = true
                     end
@@ -655,7 +655,6 @@ local function EquipGuns()
     end
 end
 
--- VÒNG LẶP DI CHUYỂN VÀ ĐÁNH (THỤ ĐỘNG)
 task.spawn(function()
     while task.wait() do
         if _G.AutoFarm or _G.AutoBoss or _G.AutoKyo or _G.AutoDuck then
@@ -681,7 +680,6 @@ task.spawn(function()
     end
 end)
 
--- VÒNG LẶP SKILL
 task.spawn(function()
     while task.wait(0.2) do
         if _G.AutoSkill and (_G.AutoFarm or _G.AutoBoss or _G.AutoKyo or _G.AutoDuck) then
