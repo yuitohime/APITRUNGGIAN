@@ -1,5 +1,5 @@
 -- ==========================================
--- GLUE PIECE - YUI HUB V11 (KHÔI PHỤC FULL CHỨC NĂNG + ANTI-WATER)
+-- GLUE PIECE - YUI HUB V12 (FIX LỖI MẤT CHỨC NĂNG)
 -- ==========================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local guiName = "GluePiece_YuiStyle_V11"
+local guiName = "GluePiece_YuiStyle_V12"
 local CoreGui = pcall(function() return game:GetService("CoreGui").Name end) and game:GetService("CoreGui") or LocalPlayer.PlayerGui
 
 if CoreGui:FindFirstChild(guiName) then CoreGui[guiName]:Destroy() end
@@ -54,7 +54,7 @@ local MoveList = {"Dịch Chuyển", "Bay Mượt (Tween)"}
 local SkillKeys = {"Q", "E", "R", "T", "F", "Z", "X", "C", "V"}
 
 -- ==========================================
--- 2. UI THEME (MOBILE COMPACT)
+-- 2. UI THEME (MAX MOBILE COMPACT)
 -- ==========================================
 local Colors = {
     BG = Color3.fromRGB(15, 17, 26),
@@ -126,7 +126,7 @@ local TitleBot = Instance.new("TextLabel", TopBar)
 TitleBot.Size = UDim2.new(0, 200, 0, 20)
 TitleBot.Position = UDim2.new(0, 20, 0.5, -10)
 TitleBot.BackgroundTransparency = 1
-TitleBot.Text = "Glue Piece V11 - Ultimate"
+TitleBot.Text = "Glue Piece V12 - Fixed"
 TitleBot.TextColor3 = Colors.Green
 TitleBot.Font = Enum.Font.GothamBold
 TitleBot.TextSize = 13
@@ -157,6 +157,7 @@ LeftPanel.Size = UDim2.new(0, 120, 1, -40)
 LeftPanel.Position = UDim2.new(0, 5, 0, 35)
 LeftPanel.BackgroundTransparency = 1
 LeftPanel.ScrollBarThickness = 0
+LeftPanel.AutomaticCanvasSize = Enum.AutomaticSize.Y
 local LeftLayout = Instance.new("UIListLayout", LeftPanel)
 LeftLayout.Padding = UDim.new(0, 3)
 
@@ -363,6 +364,7 @@ local function CreateSlider(parent, text, min, max, globalVar)
     local SliderBg = Instance.new("Frame", Frame)
     SliderBg.Size = UDim2.new(1, -16, 0, 4)
     SliderBg.Position = UDim2.new(0, 8, 0, 24)
+    -- CHỖ NÀY LÀ NƠI GÂY LỖI BẢN TRƯỚC (Color thay vì Color3). Đã fix!
     SliderBg.BackgroundColor3 = Color3.fromRGB(40,45,60)
     Instance.new("UICorner", SliderBg).CornerRadius = UDim.new(1, 0)
 
@@ -427,7 +429,7 @@ local function CreateButton(parent, text, callback)
 end
 
 -- ==========================================
--- 4. TẠO TABS CHỨC NĂNG (GẦN GIỐNG V8)
+-- 4. TẠO TABS CHỨC NĂNG 
 -- ==========================================
 
 -- TAB 1: SĂN BOSS 
@@ -623,12 +625,13 @@ local function GetStrictTarget()
     if _G.AutoKyo then for _, obj in pairs(workspace:GetDescendants()) do if obj.Name == "Kyo" and obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then return obj end end return nil end
 
     local validTargets = {}
+    -- Thu thập Boss
     for bName, isSelected in pairs(_G.FarmBosses) do
         if isSelected then
             for _, obj in pairs(workspace:GetDescendants()) do if obj.Name == bName and obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then table.insert(validTargets, obj) end end
         end
     end
-    
+    -- Nếu có bật săn Boss thì ưu tiên khóa Boss
     local isBossEnabled = false for _, v in pairs(_G.FarmBosses) do if v then isBossEnabled = true break end end
     if isBossEnabled then
         if #validTargets > 0 then
@@ -637,6 +640,7 @@ local function GetStrictTarget()
         else return nil end
     end
 
+    -- Nếu không có Boss thì Farm Mobs (Nếu AutoFarm = ON)
     if _G.AutoFarm then
         for mName, isSelected in pairs(_G.FarmMobs) do
             if isSelected then
@@ -659,21 +663,27 @@ local function MoveToSafe(hrp, targetCFrame)
     
     local dest
     if distXZ > 150 then
-        if curPos.Y < 200 then dest = CFrame.new(curPos.X, 250, curPos.Z) 
-        else dest = CFrame.new(tgtPos.X, curPos.Y, tgtPos.Z) end
+        -- Nếu mục tiêu cách xa hơn 150 Studs -> Bay lên cao trước để né Biển/Núi
+        if curPos.Y < 200 then
+            dest = CFrame.new(curPos.X, 250, curPos.Z) -- Kéo thẳng lên trời
+        else
+            dest = CFrame.new(tgtPos.X, curPos.Y, tgtPos.Z) -- Bay ngang qua đại dương
+        end
     else
-        dest = targetCFrame
+        dest = targetCFrame -- Cự ly gần thì bay thẳng tới vị trí (Trên đầu, sau lưng...)
     end
 
     if _G.MoveMethod == "Bay Mượt (Tween)" then
         local dist = (curPos - dest.Position).Magnitude
-        if dist > 0 then hrp.CFrame = hrp.CFrame:Lerp(dest, math.clamp(_G.FlySpeed / dist * 0.05, 0, 1)) end
+        if dist > 0 then
+            hrp.CFrame = hrp.CFrame:Lerp(dest, math.clamp(_G.FlySpeed / dist * 0.05, 0, 1))
+        end
     else
         hrp.CFrame = dest
     end
 end
 
--- VÒNG LẶP DI CHUYỂN VÀ AUTO CLICK
+-- VÒNG LẶP DI CHUYỂN
 task.spawn(function()
     while task.wait() do
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character.Humanoid.Health <= 0 then task.wait(2) continue end
@@ -695,6 +705,7 @@ task.spawn(function()
                     pcall(function()
                         local dest = GetOffsetCFrame(targetMob.HumanoidRootPart.CFrame)
                         PreventFalling(hrp)
+                        
                         MoveToSafe(hrp, dest)
                         
                         if _G.AutoAttack then
@@ -710,7 +721,7 @@ task.spawn(function()
     end
 end)
 
--- VÒNG LẶP SKILL (ĐÃ ĐƯỢC KHÔI PHỤC)
+-- VÒNG LẶP SKILL 
 task.spawn(function()
     while task.wait(0.2) do
         if not _G.IsHealing and _G.AutoSkill and IsFarmingEnabled() then
