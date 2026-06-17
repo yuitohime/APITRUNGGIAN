@@ -1,113 +1,237 @@
--- =======================================================
--- MÀN HÌNH BẮT ATTACK ĐỘC LẬP (CHỐNG SPAM LOG)
--- =======================================================
-local CoreGui = (gethui and pcall(gethui) and gethui()) or game:GetService("CoreGui")
-if CoreGui:FindFirstChild("AttackSpyGUI") then CoreGui.AttackSpyGUI:Destroy() end
+-- Project: Glue Piece Auto Farm Hub
+-- Lead Developer: Bui Anh Quan
+-- Target: CLASS 11B3
 
-local sg = Instance.new("ScreenGui", CoreGui)
-sg.Name = "AttackSpyGUI"
-sg.ResetOnSpawn = false
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local CoreGui = game:GetService("CoreGui")
 
-local frame = Instance.new("Frame", sg)
-frame.Size = UDim2.new(0, 320, 0, 250)
-frame.Position = UDim2.new(0.5, -160, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BorderSizePixel = 0
-frame.Active = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", frame).Color = Color3.fromRGB(255, 50, 50)
+local LocalPlayer = Players.LocalPlayer
+local guiName = "GluePieceHub_11B3"
 
--- Tiêu đề & Kéo thả
-local header = Instance.new("Frame", frame)
-header.Size = UDim2.new(1, 0, 0, 30)
-header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Instance.new("UICorner", header).CornerRadius = UDim.new(0, 8)
-
-local headerCover = Instance.new("Frame", header)
-headerCover.Size = UDim2.new(1, 0, 0, 5)
-headerCover.Position = UDim2.new(0, 0, 1, -5)
-headerCover.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-headerCover.BorderSizePixel = 0
-
-local title = Instance.new("TextLabel", header)
-title.Size = UDim2.new(1, 0, 1, 0)
-title.BackgroundTransparency = 1
-title.Text = " 🎯 BẢNG BẮT ATTACK (KÉO ĐỂ DI CHUYỂN)"
-title.TextColor3 = Color3.fromRGB(255, 100, 100)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 12
-
--- Logic Kéo thả
-local dragging, dragInput, dragStart, startPos
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true dragStart = input.Position startPos = frame.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-    end
-end)
-header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then 
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Khung chứa văn bản
-local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1, -10, 1, -40)
-scroll.Position = UDim2.new(0, 5, 0, 35)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-scroll.ScrollBarThickness = 4
-scroll.BorderSizePixel = 0
-
-local list = Instance.new("UIListLayout", scroll)
-list.Padding = UDim.new(0, 8)
-
--- Hàm in chữ ra màn hình mini
-local function logMsg(txt)
-    local l = Instance.new("TextLabel", scroll)
-    l.Size = UDim2.new(1, -5, 0, 0)
-    l.AutomaticSize = Enum.AutomaticSize.Y
-    l.TextWrapped = true
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Text = txt
-    l.TextColor3 = Color3.fromRGB(0, 255, 150)
-    l.Font = Enum.Font.Code
-    l.TextSize = 11
-    l.BackgroundTransparency = 1
+-- Xóa UI cũ nếu đã tồn tại để tránh trùng lặp
+if CoreGui:FindFirstChild(guiName) then
+    CoreGui[guiName]:Destroy()
+end
+if LocalPlayer.PlayerGui:FindFirstChild(guiName) then
+    LocalPlayer.PlayerGui[guiName]:Destroy()
 end
 
-logMsg("Đang chờ bạn bấm chém/dùng chiêu...")
+-- Xác định vị trí đặt UI
+local parentGui = pcall(function() return CoreGui.Name end) and CoreGui or LocalPlayer.PlayerGui
 
--- BỘ LỌC BẮT SÓNG LỆNH CHÉM
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
+-- ==========================================
+-- 1. THIẾT KẾ GIAO DIỆN (UI)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = guiName
+ScreenGui.Parent = parentGui
 
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if method == "FireServer" or method == "InvokeServer" then
-        local name = string.lower(tostring(self.Name))
-        -- Chỉ bắt đúng các từ khóa liên quan tới tấn công
-        if name:match("attack") or name:match("combat") or name:match("hit") or name:match("damage") or name:match("melee") then
-            local path = self:GetFullName()
-            local args = {...}
-            local argStr = ""
-            for i, v in ipairs(args) do
-                argStr = argStr .. "   ["..i.."] = " .. tostring(v) .. "\n"
+-- Main Frame (Hình chữ nhật dài)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 400, 0, 120)
+MainFrame.Position = UDim2.new(0.5, -200, 0.8, -60)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- UI Elements
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, -60, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Glue Piece Auto Farm"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Nút Thu nhỏ (Minimize)
+local MinButton = Instance.new("TextButton", MainFrame)
+MinButton.Size = UDim2.new(0, 25, 0, 25)
+MinButton.Position = UDim2.new(1, -55, 0, 2)
+MinButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+MinButton.Text = "-"
+MinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinButton.Font = Enum.Font.GothamBold
+Instance.new("UICorner", MinButton).CornerRadius = UDim.new(0, 4)
+
+-- Nút Xóa (Close)
+local CloseButton = Instance.new("TextButton", MainFrame)
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -27, 0, 2)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 4)
+
+-- Nút Toggle Auto Farm
+local ToggleFarm = Instance.new("TextButton", MainFrame)
+ToggleFarm.Size = UDim2.new(0, 180, 0, 40)
+ToggleFarm.Position = UDim2.new(0, 10, 0, 50)
+ToggleFarm.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleFarm.Text = "Auto Farm: OFF"
+ToggleFarm.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleFarm.Font = Enum.Font.GothamSemibold
+Instance.new("UICorner", ToggleFarm).CornerRadius = UDim.new(0, 6)
+
+-- Nút Toggle Auto Skill (E, R, T, F)
+local ToggleSkill = Instance.new("TextButton", MainFrame)
+ToggleSkill.Size = UDim2.new(0, 180, 0, 40)
+ToggleSkill.Position = UDim2.new(0, 200, 0, 50)
+ToggleSkill.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleSkill.Text = "Auto Skill: OFF"
+ToggleSkill.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleSkill.Font = Enum.Font.GothamSemibold
+Instance.new("UICorner", ToggleSkill).CornerRadius = UDim.new(0, 6)
+
+-- Kéo thả UI (Draggable)
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+RunService.Heartbeat:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Logic Thu nhỏ / Phóng to (Tween thành ô vuông bên trái)
+local isMinimized = false
+MinButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 50, 0, 50),
+            Position = UDim2.new(0, 0, 0.5, -25) -- Ép sát lề trái
+        })
+        tween:Play()
+        Title.Visible = false
+        ToggleFarm.Visible = false
+        ToggleSkill.Visible = false
+        MinButton.Text = "+"
+        MinButton.Size = UDim2.new(1, 0, 1, 0)
+        MinButton.Position = UDim2.new(0, 0, 0, 0)
+        CloseButton.Visible = false
+    else
+        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 400, 0, 120),
+            Position = UDim2.new(0.5, -200, 0.8, -60)
+        })
+        tween:Play()
+        tween.Completed:Wait()
+        Title.Visible = true
+        ToggleFarm.Visible = true
+        ToggleSkill.Visible = true
+        MinButton.Text = "-"
+        MinButton.Size = UDim2.new(0, 25, 0, 25)
+        MinButton.Position = UDim2.new(1, -55, 0, 2)
+        CloseButton.Visible = true
+    end
+end)
+
+-- Logic Đóng UI
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- ==========================================
+-- 2. LOGIC TÍNH NĂNG (AUTO FARM & SKILL)
+-- ==========================================
+local getgenv = getgenv or function() return _G end
+getgenv().autoFarm = false
+getgenv().autoSkill = false
+
+ToggleFarm.MouseButton1Click:Connect(function()
+    getgenv().autoFarm = not getgenv().autoFarm
+    ToggleFarm.Text = getgenv().autoFarm and "Auto Farm: ON" or "Auto Farm: OFF"
+    ToggleFarm.BackgroundColor3 = getgenv().autoFarm and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 50, 50)
+end)
+
+ToggleSkill.MouseButton1Click:Connect(function()
+    getgenv().autoSkill = not getgenv().autoSkill
+    ToggleSkill.Text = getgenv().autoSkill and "Auto Skill: ON" or "Auto Skill: OFF"
+    ToggleSkill.BackgroundColor3 = getgenv().autoSkill and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(50, 50, 50)
+end)
+
+-- Hàm quét và lấy toàn bộ quái trên đảo (kiểm tra Humanoid & Máu > 0)
+local function getValidMobs()
+    local mobs = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+            -- Loại bỏ local player và NPC không có máu
+            if obj.Name ~= LocalPlayer.Name and obj.Humanoid.Health > 0 then
+                table.insert(mobs, obj)
             end
-            
-            local finalTxt = "🔥 TÊN: " .. self.Name .. "\n📂 ĐƯỜNG DẪN:\n" .. path .. "\n⚙️ THAM SỐ (ARGS):\n" .. (argStr == "" and "   (Không có tham số)" or argStr) .. "-----------------------"
-            
-            -- Đẩy lên màn hình mini
-            task.spawn(function() logMsg(finalTxt) end)
         end
     end
-    return oldNamecall(self, ...)
+    return mobs
+end
+
+-- Vòng lặp Auto Farm
+task.spawn(function()
+    while task.wait() do
+        if getgenv().autoFarm then
+            local mobs = getValidMobs()
+            for _, mob in pairs(mobs) do
+                if not getgenv().autoFarm then break end
+                
+                -- Khóa mục tiêu cho đến khi quái chết
+                while mob and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and getgenv().autoFarm do
+                    pcall(function()
+                        local char = LocalPlayer.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            -- Dịch chuyển ra sau lưng quái 5 stud
+                            char.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
+                            
+                            -- Auto Click (Sử dụng VirtualInputManager để mô phỏng nhấp chuột trái)
+                            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                            task.wait(0.05)
+                            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+            end
+        end
+    end
 end)
-setreadonly(mt, true)
+
+-- Vòng lặp Auto Skill (Trái Ác Quỷ E, R, T, F)
+task.spawn(function()
+    local skills = {"E", "R", "T", "F"}
+    while task.wait(0.5) do
+        if getgenv().autoSkill and getgenv().autoFarm then
+            for _, key in ipairs(skills) do
+                if not getgenv().autoSkill then break end
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game)
+                    task.wait(0.1)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[key], false, game)
+                end)
+                task.wait(0.2) -- Thời gian nghỉ giữa các chiêu để tránh lag
+            end
+        end
+    end
+end)
