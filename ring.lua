@@ -1,5 +1,5 @@
 -- ==========================================
--- HỆ THỐNG GIAO DIỆN (ROCK FRUIT - V15 UNBREAKABLE)
+-- HỆ THỐNG GIAO DIỆN (ROCK FRUIT - V16 TỐI THƯỢNG)
 -- ==========================================
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
@@ -7,8 +7,8 @@ local Player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
-local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 
 local existingUI = CoreGui:FindFirstChild("YuiMobileHub") or Player:WaitForChild("PlayerGui"):FindFirstChild("YuiMobileHub")
 if existingUI then existingUI:Destroy() end
@@ -28,7 +28,7 @@ local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 30); TopBar.BackgroundTransparency = 1
 local Title = Instance.new("TextLabel", TopBar)
 Title.Size = UDim2.new(1, -30, 1, 0); Title.Position = UDim2.new(0, 10, 0, 0); Title.BackgroundTransparency = 1; Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Text = "Yui HUB - ROCK FRUIT v15 (Unbreakable)"; Title.Font = Enum.Font.GothamBold; Title.TextSize = 12; Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Text = "Yui HUB - ROCK FRUIT v16 (Safe & Smart Scan)"; Title.Font = Enum.Font.GothamBold; Title.TextSize = 12; Title.TextXAlignment = Enum.TextXAlignment.Left
 local TitleLine = Instance.new("Frame", TopBar); TitleLine.Size = UDim2.new(0, 2, 0, 14); TitleLine.Position = UDim2.new(0, 4, 0.5, -7); TitleLine.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 local CloseBtn = Instance.new("TextButton", TopBar)
 CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -30, 0, 0); CloseBtn.BackgroundTransparency = 1; CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50); CloseBtn.Text = "X"; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 14
@@ -106,7 +106,7 @@ local function CreateSlider(parentSec, text, min, max, varName)
     game:GetService("UserInputService").InputChanged:Connect(function(input) if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end end)
 end
 
-local function CreateSmartDropdown(parentBtn, getItemsFunc, globalVarName)
+local function CreateSmartDropdown(parentBtn, getItemsFunc, globalVarName, multiSelect)
     local DropFrame = Instance.new("ScrollingFrame", ScreenGui)
     DropFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); DropFrame.BorderSizePixel = 1; DropFrame.BorderColor3 = Color3.fromRGB(0, 150, 255); DropFrame.ZIndex = 10; DropFrame.Visible = false; DropFrame.ScrollBarThickness = 4
     local Layout = Instance.new("UIListLayout", DropFrame); table.insert(ActiveDropdowns, DropFrame)
@@ -116,18 +116,28 @@ local function CreateSmartDropdown(parentBtn, getItemsFunc, globalVarName)
         for _, c in ipairs(DropFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
         
         local items = getItemsFunc()
+        if #items == 0 then table.insert(items, {Text = "Không tìm thấy", Value = ""}) end
+        
         for _, item in ipairs(items) do
             local b = Instance.new("TextButton", DropFrame)
             b.Size = UDim2.new(1, 0, 0, 26); b.BackgroundColor3 = Color3.fromRGB(30, 30, 30); b.Font = Enum.Font.Gotham; b.TextSize = 11; b.TextXAlignment = Enum.TextXAlignment.Left; b.ZIndex = 11
+            
+            if item.Value == "" then b.Text = "  " .. item.Text; continue end
             
             local isSel = table.find(_G[globalVarName], item.Value) ~= nil
             b.TextColor3 = isSel and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(200, 200, 200)
             b.Text = isSel and "  ☑ " .. item.Text or "  ☐ " .. item.Text
             
             b.MouseButton1Click:Connect(function()
-                isSel = not isSel
-                if isSel then table.insert(_G[globalVarName], item.Value) else
-                    local idx = table.find(_G[globalVarName], item.Value); if idx then table.remove(_G[globalVarName], idx) end
+                if multiSelect then
+                    isSel = not isSel
+                    if isSel then table.insert(_G[globalVarName], item.Value) else
+                        local idx = table.find(_G[globalVarName], item.Value); if idx then table.remove(_G[globalVarName], idx) end
+                    end
+                else
+                    _G[globalVarName] = {item.Value}; isSel = true
+                    parentBtn.Text = "Đã chọn: " .. item.Text
+                    DropFrame.Visible = false; CloseOverlay.Visible = false
                 end
                 b.TextColor3 = isSel and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(200, 200, 200)
                 b.Text = isSel and "  ☑ " .. item.Text or "  ☐ " .. item.Text
@@ -162,7 +172,6 @@ local function GetPlayerLevel()
     return lvl == 0 and 1 or lvl
 end
 
--- TP CHỐNG KẸT VẬT LÝ (Tắt AntiFling trước khi bay)
 local function TP(targetObj)
     if not targetObj then return end
     local char = Player.Character
@@ -192,16 +201,14 @@ local function FastSkill(key)
     end)
 end
 
--- HÀM LÀM SẠCH CHUỖI TÌM QUÁI
-local function cleanStr(s) return string.gsub(string.lower(s), "[^%w]", "") end
-
 -- ==========================================
 -- BIẾN TOÀN CỤC CHÍNH
 -- ==========================================
 _G.SelectedMobs, _G.SelectedWeapons = {}, {}
 _G.AutoFarm, _G.AutoAttack, _G.AutoEquip = false, false, false
 _G.AutoQuestLevel, _G.AutoFarmLevel = false, false
-_G.AutoSummonBoss, _G.AutoFarmBoss, _G.SelectedBoss = false, false, "Dark Bacon"
+_G.AutoSummonBoss, _G.AutoFarmBoss = false, false
+_G.TempBossList = {"Dark Bacon"}
 _G.WepDelay, _G.LastWepTick, _G.WepIdx = 1, 0, 1
 _G.AutoBuyChest, _G.ChestAmount, _G.AutoRandomFruit = false, 5, false
 _G.AttackPos, _G.AttackDist = "Trên đầu", 5
@@ -212,29 +219,37 @@ _G.WalkSpeed, _G.JumpPower, _G.Noclip, _G.Fly, _G.FlySpeed = 16, 50, false, fals
 -- XÂY DỰNG TABS
 -- ==========================================
 
--- [1] TAB MAIN
+-- [1] TAB MAIN (Đã chuyển Mobs thành dạng Quét Thực Tế)
 local MainLeft, MainRight = CreateTab("Main", true)
 
 local SecAutoLv = CreateSection(MainLeft, "Auto Level Progression")
 CreateToggle(SecAutoLv, "Tự Động Nhận Quest (Theo Lv)", "AutoQuestLevel")
 CreateToggle(SecAutoLv, "Tự Động Farm Quái (Theo Lv)", "AutoFarmLevel")
 
-local SecMob = CreateSection(MainLeft, "Mob Selection (Thủ công)")
+local SecMob = CreateSection(MainLeft, "Mob Selection (Quét Map)")
 local MobDropBtn = CreateButton(SecMob, "Chọn Quái ▼", function() end)
 CreateSmartDropdown(MobDropBtn, function()
     local mobs = {}
-    for _, q in ipairs(QuestData) do
-        local maxLv = q.Lv + 999; if q.Lv >= 19000 then maxLv = "Max" end
-        table.insert(mobs, {Text = q.Mob .. " [Lv " .. q.Lv .. "-" .. maxLv .. "]", Value = q.Mob})
+    local folders = {workspace:FindFirstChild("mod"), workspace:FindFirstChild("Mob"), workspace:FindFirstChild("Enemies"), workspace}
+    for _, f in ipairs(folders) do
+        if f then
+            for _, v in ipairs(f:GetChildren()) do
+                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= Player.Name then
+                    local isExist = false
+                    for _, m in ipairs(mobs) do if m.Value == v.Name then isExist = true break end end
+                    if not isExist then table.insert(mobs, {Text = v.Name, Value = v.Name}) end
+                end
+            end
+        end
     end
     return mobs
-end, "SelectedMobs")
+end, "SelectedMobs", true)
 
 local SecWep = CreateSection(MainLeft, "Auto Equip Weapon")
 local WepDropBtn = CreateButton(SecWep, "Chọn Nhiều Vũ Khí ▼", function() end)
 CreateSmartDropdown(WepDropBtn, function()
     local weps = {}; for _, v in pairs(Player.Backpack:GetChildren()) do if v:IsA("Tool") then table.insert(weps, {Text = v.Name, Value = v.Name}) end end; return weps
-end, "SelectedWeapons")
+end, "SelectedWeapons", true)
 CreateSlider(SecWep, "Delay Đổi Vũ Khí (s)", 0, 10, "WepDelay")
 
 local SecFarm = CreateSection(MainRight, "Farming Config")
@@ -242,14 +257,24 @@ CreateToggle(SecFarm, "Tự Đổi Cầm Vũ Khí (Cycle)", "AutoEquip")
 CreateToggle(SecFarm, "Auto Attack", "AutoAttack")
 CreateToggle(SecFarm, "Auto Farm", "AutoFarm")
 
--- [2] TAB BOSS
+-- [2] TAB BOSS (Chuyển Boss thành Quét Thực Tế)
 local BossLeft, BossRight = CreateTab("Boss", false)
 
 local SecBoss = CreateSection(BossLeft, "Summon Boss")
-_G.TempBossList = {"SelectedBoss"}
 local BossDropBtn = CreateButton(SecBoss, "Boss: Dark Bacon", function() end)
-CreateSmartDropdown(BossDropBtn, function() return {{Text = "Dark Bacon", Value = "Dark Bacon"}, {Text = "GooGooGaaGaa", Value = "GooGooGaaGaa"}} end, "TempBossList")
-BossDropBtn.MouseButton1Click:Connect(function() task.wait(0.2); if #_G.TempBossList > 0 then _G.SelectedBoss = _G.TempBossList[#_G.TempBossList]; BossDropBtn.Text = "Boss: " .. _G.SelectedBoss end end)
+CreateSmartDropdown(BossDropBtn, function()
+    local bList = {{Text = "Dark Bacon", Value = "Dark Bacon"}, {Text = "GooGooGaaGaa", Value = "GooGooGaaGaa"}}
+    local bossFolder = workspace:FindFirstChild("NpcBoss") or workspace:FindFirstChild("Bosses")
+    if bossFolder then
+        for _, v in pairs(bossFolder:GetChildren()) do
+            if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+                local exists = false; for _, e in ipairs(bList) do if e.Value == v.Name then exists = true break end end
+                if not exists then table.insert(bList, {Text = v.Name, Value = v.Name}) end
+            end
+        end
+    end
+    return bList
+end, "TempBossList", false)
 CreateToggle(SecBoss, "Auto Summon Boss", "AutoSummonBoss")
 
 local SecBossFarm = CreateSection(BossRight, "Boss Farm")
@@ -272,7 +297,7 @@ local TpLeft, TpRight = CreateTab("Teleport", false)
 local SecMap = CreateSection(TpLeft, "Island Teleport (Qua Cổng)")
 local MapList = {"Starter Island", "Jungle", "Desert", "Snow"}; local MapBtn = CreateButton(SecMap, "Đích: Starter Island", function() end); local MapIdx = 1
 MapBtn.MouseButton1Click:Connect(function() MapIdx = MapIdx + 1; if MapIdx > #MapList then MapIdx = 1 end; MapBtn.Text = "Đích: " .. MapList[MapIdx] end)
-CreateButton(SecMap, "✈️ Bay Qua Đảo", function()
+CreateButton(SecMap, "✈️ Bay Qua Đảo (Cổng)", function()
     local gates = workspace:FindFirstChild("Gates")
     if gates and gates:FindFirstChild("TeleportPart") then
         local p = gates.TeleportPart:FindFirstChild(MapList[MapIdx])
@@ -282,13 +307,13 @@ end)
 
 local SecShopNPC = CreateSection(TpRight, "NPC Shops (Cố định)")
 local FixedShops = {"Sword Dealer", "Fruit Dealer", "Blacksmith", "Haki Color", "Haki Dealer"}
-_G.TempShopList = {}
+_G.TempShopList = {FixedShops[1]}
 local ShopDropBtn = CreateButton(SecShopNPC, "Chọn NPC Shop ▼", function() end)
 CreateSmartDropdown(ShopDropBtn, function() 
     local t = {}; for _, v in ipairs(FixedShops) do table.insert(t, {Text = v, Value = v}) end; return t 
-end, "TempShopList")
+end, "TempShopList", false)
 CreateButton(SecShopNPC, "✈️ Bay Tới NPC Shop", function()
-    local targetShop = _G.TempShopList[#_G.TempShopList]
+    local targetShop = _G.TempShopList[1]
     if targetShop then
         for _, fn in ipairs({"NpcWeapon", "NpcRandomFruit", "npcprompt", "NPCs"}) do
             local folder = workspace:FindFirstChild(fn)
@@ -330,7 +355,7 @@ CreateButton(SecPerf, "Xóa Hiệu Ứng (Giảm Lag)", function() for _, v in p
 
 
 -- ==========================================
--- VÒNG LẶP XỬ LÝ CHÍNH (LOGIC CHỐNG KẸT)
+-- VÒNG LẶP XỬ LÝ CHÍNH (LOGIC CHỐNG KẸT & SAFE DEBOUNCE)
 -- ==========================================
 local FlyBV, FlyBG
 RunService.RenderStepped:Connect(function()
@@ -355,6 +380,8 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local LastQuestTick, LastSummonTick = 0, 0
+local IsBuyingChest, IsRandoming = false, false
+
 task.spawn(function()
     while task.wait(0.01) do
         local char = Player.Character
@@ -369,14 +396,20 @@ task.spawn(function()
         if _G.AutoQuestLevel then
             local hasQuest = false
             for _, v in pairs(Player.PlayerGui:GetDescendants()) do if v:IsA("TextLabel") and (string.find(string.lower(v.Text), "defeat") or string.find(string.lower(v.Text), "0/")) and v.Visible then hasQuest = true; break end end
-            
             if not hasQuest and tick() - LastQuestTick > 3 then
                 LastQuestTick = tick()
                 task.spawn(function()
-                    local npc = workspace:FindFirstChild(currentQ.NPC, true)
-                    if npc then
-                        local prompt = npc:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then TP(npc); task.wait(0.3); FirePrompt(prompt) end
+                    local questFolders = {workspace:FindFirstChild("NpcQuest"), workspace:FindFirstChild("NPCs"), workspace}
+                    for _, f in ipairs(questFolders) do
+                        if f then
+                            for _, v in ipairs(f:GetChildren()) do
+                                if string.find(string.lower(v.Name), string.lower(currentQ.NPC)) then
+                                    local prompt = v:FindFirstChildWhichIsA("ProximityPrompt", true)
+                                    if prompt then TP(v); task.wait(0.3); FirePrompt(prompt) end
+                                    return
+                                end
+                            end
+                        end
                     end
                 end)
             end
@@ -384,8 +417,9 @@ task.spawn(function()
 
         -- AUTO SUMMON BOSS
         if _G.AutoSummonBoss then
+            local selBoss = _G.TempBossList[1] or "Dark Bacon"
             local bossAlive = false
-            for _, v in pairs(workspace:GetDescendants()) do if v:IsA("Model") and string.find(string.lower(v.Name), string.lower(cleanStr(_G.SelectedBoss))) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then bossAlive = true; break end end
+            for _, v in pairs(workspace:GetDescendants()) do if v:IsA("Model") and string.find(string.lower(v.Name), string.lower(selBoss)) and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then bossAlive = true; break end end
             
             if not bossAlive and tick() - LastSummonTick > 5 then
                 LastSummonTick = tick()
@@ -399,7 +433,7 @@ task.spawn(function()
                         pcall(function()
                             local gui = Player.PlayerGui:FindFirstChild("HUB")
                             if gui and gui.Main.Frame_SummonBoss.Visible then
-                                local btn = gui.Main.Frame_SummonBoss.ScrollingFrame[_G.SelectedBoss].Main.TextButton
+                                local btn = gui.Main.Frame_SummonBoss.ScrollingFrame[selBoss].Main.TextButton
                                 if getconnections then for _, c in pairs(getconnections(btn.MouseButton1Click)) do c:Fire() end; for _, c in pairs(getconnections(btn.Activated)) do c:Fire() end end
                                 gui.Main.Frame_SummonBoss.Visible = false
                             end
@@ -409,55 +443,61 @@ task.spawn(function()
             end
         end
 
-        -- AUTO BUY CHEST
-        if _G.AutoBuyChest then
+        -- KHÓA AN TOÀN CHO CHEST VÀ RANDOM FRUIT
+        if _G.AutoBuyChest and not IsBuyingChest then
+            IsBuyingChest = true
             task.spawn(function()
                 for _, v in pairs(workspace:GetDescendants()) do
                     if string.match(string.lower(v.Name), "chest") then
                         local prompt = v:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then TP(v); task.wait(0.2); for i=1, _G.ChestAmount do FirePrompt(prompt); task.wait(0.05) end; break end
+                        if prompt then TP(v); task.wait(0.3); for i=1, _G.ChestAmount do FirePrompt(prompt); task.wait(0.1) end; break end
                     end
                 end
+                task.wait(1.5)
+                IsBuyingChest = false
             end)
-            task.wait(1) 
         end
 
-        -- AUTO RANDOM FRUIT
-        if _G.AutoRandomFruit then
+        if _G.AutoRandomFruit and not IsRandoming then
+            IsRandoming = true
             task.spawn(function()
                 local npc = workspace:FindFirstChild("NpcRandomFruit", true)
                 if npc then
                     local prompt = npc:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if prompt then TP(npc); task.wait(0.2); FirePrompt(prompt) end
+                    if prompt then TP(npc); task.wait(0.3); FirePrompt(prompt) end
                 end
+                task.wait(1.5)
+                IsRandoming = false
             end)
-            task.wait(1)
         end
 
-        -- TÌM MỤC TIÊU CỰC NHANH (MỜ & CHỐNG KẸT)
+        -- TÌM QUÁI CHUẨN XÁC 100% (Manual & Level)
         local target = nil
         local isFarming = _G.AutoFarm or _G.AutoFarmBoss or _G.AutoFarmLevel
         
         if isFarming then
-            if _G.AutoFarmLevel then _G.SelectedMobs = {currentQ.Mob} end 
+            local activeMobs = _G.SelectedMobs
+            if _G.AutoFarmLevel then activeMobs = {currentQ.Mob} end 
             
             if _G.AutoFarmBoss then
-                for _, v in pairs(workspace:GetDescendants()) do if v:IsA("Model") and string.find(string.lower(v.Name), string.lower(cleanStr(_G.SelectedBoss))) and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then target = v; break end end
+                local selBoss = _G.TempBossList[1] or "Dark Bacon"
+                for _, v in pairs(workspace:GetDescendants()) do if v:IsA("Model") and string.find(string.lower(v.Name), string.lower(selBoss)) and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then target = v; break end end
             end
             
             if not target and (_G.AutoFarm or _G.AutoFarmLevel) then
                 local folders = {workspace:FindFirstChild("mod"), workspace:FindFirstChild("Mob"), workspace:FindFirstChild("Enemies"), workspace}
-                for _, mobName in pairs(_G.SelectedMobs) do
-                    local cleanMob = cleanStr(mobName)
+                for _, mobName in pairs(activeMobs) do
                     for _, f in ipairs(folders) do
                         if f then
                             for _, v in ipairs(f:GetChildren()) do
                                 if v:IsA("Model") and v.Name ~= Player.Name and v:FindFirstChild("HumanoidRootPart") then
                                     local hum = v:FindFirstChild("Humanoid")
                                     if hum and hum.Health > 0 then
-                                        local cleanV = cleanStr(v.Name)
-                                        if cleanV == cleanMob or string.find(cleanV, cleanMob, 1, true) then 
-                                            if not game.Players:GetPlayerFromCharacter(v) then target = v; break end
+                                        -- Level Auto Farm thì tìm chứa chữ (Fuzzy). Chọn tay thì phải ĐÚNG CHỮ (Exact).
+                                        if _G.AutoFarmLevel then
+                                            if string.find(string.lower(v.Name), string.lower(mobName)) and not game.Players:GetPlayerFromCharacter(v) then target = v; break end
+                                        else
+                                            if v.Name == mobName and not game.Players:GetPlayerFromCharacter(v) then target = v; break end
                                         end
                                     end
                                 end
